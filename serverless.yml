@@ -34,6 +34,8 @@ provider:
 functions:
   convertHeicToJpg:
     handler: handler.convert_heic_to_jpg
+    memorySize: 256
+    timeout: 10
     layers:
       - {Ref: PythonRequirementsLambdaLayer}
     events:
