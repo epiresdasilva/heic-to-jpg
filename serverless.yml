@@ -1,0 +1,57 @@
+service: heic-to-jpg
+frameworkVersion: '3'
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer:
+      name: python-deps
+      description: Python dependencies for HEIC to JPG conversion
+
+provider:
+  name: aws
+  runtime: python3.9
+  region: us-east-1
+  environment:
+    AWS_ACCOUNT_ID: ${aws:accountId}
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+          Resource: 
+            - arn:aws:s3:::heic-input-${aws:accountId}-${aws:region}/*
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+          Resource: 
+            - arn:aws:s3:::jpg-output-${aws:accountId}-${aws:region}/*
+
+functions:
+  convertHeicToJpg:
+    handler: handler.convert_heic_to_jpg
+    layers:
+      - {Ref: PythonRequirementsLambdaLayer}
+    events:
+      - s3:
+          bucket: heic-input-${aws:accountId}-${aws:region}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .HEIC
+      - s3:
+          bucket: heic-input-${aws:accountId}-${aws:region}
+          event: s3:ObjectCreated:*
+          rules:
+            - suffix: .heic
+resources:
+  Resources:
+
+    JpgOutputBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: jpg-output-${aws:accountId}-${aws:region}
+
